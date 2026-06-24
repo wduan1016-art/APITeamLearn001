@@ -1,0 +1,141 @@
+###Omniverse###
+#进入Omniverse文件夹
+cd /home/zentek/omniverse/
+
+#启动Omniverse
+./my_company.my_usd_composer.kit.sh
+
+#完整文档链接
+https://docs.nvidia.com/omniverse/index.html
+
+###Isaac Sim###
+#进入Isaac Sim文件夹
+cd /home/zentek/isaacsim/
+
+#启动Isaac Sim
+./isaac-sim.sh
+
+#完整文档链接
+https://docs.isaacsim.omniverse.nvidia.com/latest/index.html
+
+###Ollama###
+#启动Qwen 3.6-35b模型
+ollama run qwen3.6:35b-a3b
+
+#完整文档链接
+https://docs.ollama.com/index
+
+###gr00t###
+#启动GR00T N1.7容器
+docker run -it --rm --gpus all \
+    --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 \
+    -v /home/zentek/Isaac-GR00T/:/workspace \
+    gr00t-spark:latest
+   
+#使用示例数据集进行模型微调
+python \
+    /workspace/gr00t/experiment/launch_finetune.py \
+    --base-model-path /workspace/GR00T-N1.7-3B \
+    --dataset-path /workspace/demo_data/cube_to_bowl_5 \
+    --embodiment-tag NEW_EMBODIMENT \
+    --modality-config-path /workspace/examples/SO100/so100_config.py \
+    --num-gpus 1 \
+    --output-dir /tmp/test_finetune \
+    --max-steps 2000 \
+    --global-batch-size 32 \
+    --dataloader-num-workers 4
+    
+#GR00T推理
+#Terminal 1 — Start the policy server
+python gr00t/eval/run_gr00t_server.py \
+    --model-path nvidia/GR00T-N1.7-3B \
+    --embodiment-tag OXE_DROID_RELATIVE_EEF_RELATIVE_JOINT \
+    --device cuda:0
+
+#Terminal 2 — Run open-loop evaluation as a client
+python gr00t/eval/open_loop_eval.py \
+    --dataset-path demo_data/droid_sample \
+    --embodiment-tag OXE_DROID_RELATIVE_EEF_RELATIVE_JOINT \
+    --host 127.0.0.1 \
+    --port 5555 \
+    --traj-ids 1 2 \
+    --action-horizon 8
+
+#完整文档链接
+https://github.com/NVIDIA/Isaac-GR00T
+    
+
+###Lerobot###
+#检测机械臂端口
+lerobot-find-port
+
+#为端口添加权限
+sudo chmod 666 /dev/ttyACM0
+sudo chmod 666 /dev/ttyACM1
+
+#校准从臂
+lerobot-calibrate \
+    --robot.type=so101_follower \
+    --robot.port=/dev/ttyACM0 \
+    --robot.id=my_awesome_follower_arm
+
+#校准主臂
+lerobot-calibrate \
+    --teleop.type=so101_leader \
+    --teleop.port=/dev/ttyACM1 \
+    --teleop.id=my_awesome_leader_arm
+
+#测试遥操(不启用摄像头)
+lerobot-teleoperate \
+    --robot.type=so101_follower \
+    --robot.port=/dev/ttyACM0 \
+    --robot.id=my_awesome_follower_arm \
+    --teleop.type=so101_leader \
+    --teleop.port=/dev/ttyACM1 \
+    --teleop.id=my_awesome_leader_arm
+
+#测试摄像头连接
+lerobot-find-cameras opencv
+
+#测试遥操(启用摄像头)
+lerobot-teleoperate \
+    --robot.type=so101_follower \
+    --robot.port=/dev/ttyACM0 \
+    --robot.id=my_awesome_follower_arm \
+    --robot.cameras="{ front: {type: opencv, index_or_path: 0, width: 640, height: 480, fps: 30},env: {type: opencv, index_or_path: 2, width: 640, height: 480, fps: 30}}" \
+    --teleop.type=so101_leader \
+    --teleop.port=/dev/ttyACM1 \
+    --teleop.id=my_awesome_leader_arm \
+    --display_data=true
+    
+#启动数据采集
+lerobot-record \
+    --robot.type=so101_follower \
+    --robot.port=/dev/ttyACM0 \
+    --robot.id=my_awesome_follower_arm \
+    --robot.cameras="{ front: {type: opencv, index_or_path: 0, width: 640, height: 480, fps: 30},env: {type: opencv, index_or_path: 2, width: 640, height: 480, fps: 30}}" \
+    --teleop.type=so101_leader \
+    --teleop.port=/dev/ttyACM1 \
+    --teleop.id=my_awesome_leader_arm \
+    --display_data=true \
+    --dataset.repo_id=test/record-test \
+    --dataset.num_episodes=5 \
+    --dataset.single_task="Grab the black cube" \
+    --dataset.streaming_encoding=true \
+    # --dataset.vcodec=auto \
+    --dataset.encoder_threads=2
+
+#数据集回放
+lerobot-replay \
+    --robot.type=so101_follower \
+    --robot.port=/dev/ttyACM0 \
+    --robot.id=my_awesome_follower_arm \
+    --dataset.repo_id=test/record-test \
+    --dataset.episode=0 # choose the episode you want to replay
+    
+#完整文档链接
+https://huggingface.co/docs/lerobot/index 
+
+
+
+
