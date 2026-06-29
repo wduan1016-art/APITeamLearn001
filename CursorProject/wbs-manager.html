@@ -589,7 +589,10 @@
     <span class="spacer"></span>
 
     <button class="btn btn-primary" onclick="openModal()">＋ 新增工作项</button>
+    <button class="btn btn-success btn-sm" onclick="exportJSON()">📦 导出 JSON</button>
+    <button class="btn btn-outline btn-sm" onclick="document.getElementById('jsonImportInput').click()">📤 导入 JSON</button>
     <button class="btn btn-success btn-sm" onclick="exportCSV()">📥 导出 CSV</button>
+    <input type="file" id="jsonImportInput" accept=".json,application/json" style="display:none" onchange="importJSON(event)">
   </div>
 
   <!-- Table -->
@@ -718,11 +721,33 @@
 <script>
 // ==================== Data Layer ====================
 const STORAGE_KEY = 'wbs_project_data';
+const PUBLISHED_DATA_URL = './wbs-data.json';
+
+function normalizeWbsPayload(payload) {
+  const items = Array.isArray(payload) ? payload : payload?.items;
+  if (!Array.isArray(items)) return [];
+
+  return items.map(item => ({
+    id: item.id || generateId(),
+    phase: item.phase || '',
+    objective: item.objective || '',
+    workItem: item.workItem || '',
+    content: item.content || '',
+    progress: item.progress ?? 0,
+    status: item.status || '/',
+    planStart: item.planStart || '',
+    planEnd: item.planEnd || '',
+    actualStart: item.actualStart || '',
+    actualEnd: item.actualEnd || '',
+    person: item.person || '',
+    remarks: item.remarks || '',
+  }));
+}
 
 function loadData() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    return raw ? normalizeWbsPayload(JSON.parse(raw)) : [];
   } catch (e) {
     return [];
   }
@@ -739,6 +764,26 @@ function saveData(data) {
 
 let wbsData = loadData();
 let currentEditId = null;
+
+async function loadPublishedDataIfNeeded() {
+  if (wbsData.length > 0) return;
+
+  try {
+    const response = await fetch(PUBLISHED_DATA_URL, { cache: 'no-store' });
+    if (!response.ok) return;
+
+    const publishedData = normalizeWbsPayload(await response.json());
+    if (publishedData.length === 0) return;
+
+    wbsData = publishedData;
+    saveData(wbsData);
+    renderTable();
+    showToast('已加载发布版 WBS 数据 ✅', 'success');
+  } catch (e) {
+    // file:// preview may block fetch; GitHub Pages/http preview works normally.
+    console.info('未加载发布版数据:', e.message);
+  }
+}
 
 // ==================== Helpers ====================
 function generateId() {
@@ -1168,6 +1213,43 @@ function deleteItem(id) {
 }
 
 // ==================== Import / Export ====================
+function exportJSON() {
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    items: wbsData,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+  downloadBlob(blob, 'wbs-data.json');
+  showToast('JSON 已导出，请将文件放到网页同目录后发布 ✅', 'success');
+}
+
+function importJSON(event) {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const importedData = normalizeWbsPayload(JSON.parse(reader.result));
+      if (importedData.length === 0) {
+        showToast('JSON 文件中没有可导入的 WBS 数据 ❌', 'error');
+        return;
+      }
+
+      if (!confirm(`将导入 ${importedData.length} 条 WBS 数据，并覆盖当前本地数据。是否继续？`)) return;
+
+      wbsData = importedData;
+      saveData(wbsData);
+      renderTable();
+      showToast('JSON 已导入 ✅', 'success');
+    } catch (e) {
+      showToast('JSON 导入失败：' + e.message + ' ❌', 'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
 function exportCSV() {
   const headers = ['项目阶段','工作目标','工作项','工作内容','进度','状态','计划开始时间','计划结束时间','实际开始时间','实际结束时间','负责人','备注/说明'];
   const keys = ['phase','objective','workItem','content','progress','status','planStart','planEnd','actualStart','actualEnd','person','remarks'];
@@ -1220,6 +1302,7 @@ function showToast(msg, type) {
 initPersonDropdown();
 initDragDrop();
 renderTable();
+loadPublishedDataIfNeeded();
 
 console.log('📋 WBS 项目管理已就绪');
 console.log('  数据条数:', wbsData.length);
