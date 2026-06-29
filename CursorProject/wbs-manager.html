@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WBS 项目管理</title>
+<style>
+  :root {
+    --bg: #f5f6fa;
+    --card-bg: #ffffff;
+    --primary: #4f6ef7;
+    --primary-hover: #3b5de7;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --info: #6366f1;
+    --text: #1e293b;
+    --text-secondary: #64748b;
+    --border: #e2e8f0;
+    --row-hover: #f1f5f9;
+    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+    --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+    --radius: 8px;
+    --radius-sm: 6px;
+    --transition: 0.2s ease;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 100%;
+    padding: 20px 24px;
+  }
+
+  /* ========== Header ========== */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .header h1 .icon { font-size: 28px; }
+
+  /* ========== Stats Cards ========== */
+  .stats-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .stat-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    box-shadow: var(--shadow);
+    flex: 1;
+    min-width: 160px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: var(--transition);
+  }
+  .stat-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .stat-icon {
+    width: 44px; height: 44px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+  .stat-icon.total { background: #eef2ff; color: var(--info); }
+  .stat-icon.done { background: #ecfdf5; color: var(--success); }
+  .stat-icon.progress { background: #fffbeb; color: var(--warning); }
+  .stat-icon.delayed { background: #fef2f2; color: var(--danger); }
+  .stat-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 2px; }
+  .stat-value { font-size: 22px; font-weight: 700; }
+  .stat-unit { font-size: 12px; color: var(--text-secondary); margin-left: 2px; }
+
+  /* ========== Toolbar ========== */
+  .toolbar {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    box-shadow: var(--shadow);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toolbar-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+  .search-box {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+    max-width: 360px;
+  }
+  .search-box input {
+    width: 100%;
+    padding: 8px 12px 8px 36px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    outline: none;
+    transition: var(--transition);
+  }
+  .search-box input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,110,247,.1); }
+  .search-box .search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+
+  select {
+    padding: 8px 32px 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    outline: none;
+    background: #fff;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: var(--transition);
+  }
+  select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,110,247,.1); }
+
+  .btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-success:hover { background: #16a34a; }
+  .btn-outline { background: #fff; color: var(--text); border: 1px solid var(--border); }
+  .btn-outline:hover { background: var(--row-hover); }
+  .btn-danger { background: #fff; color: var(--danger); border: 1px solid var(--danger); }
+  .btn-danger:hover { background: #fef2f2; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-xs { padding: 3px 8px; font-size: 11px; border-radius: 4px; }
+
+  .spacer { flex: 1; }
+
+  /* ========== Table ========== */
+  .table-wrapper {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .table-scroll {
+    overflow-x: auto;
+    max-height: 62vh;
+    overflow-y: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 1800px;
+  }
+  thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  thead th {
+    background: #f8fafc;
+    padding: 12px 10px;
+    text-align: left;
+    font-weight: 700;
+    color: var(--text-secondary);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  tbody tr { transition: background var(--transition); }
+  tbody tr:hover { background: var(--row-hover); }
+  tbody tr:hover td { white-space: normal; word-break: break-all; }
+
+  /* ========== Multi-select ========== */
+  .multi-select { position: relative; }
+  .multi-select-input {
+    display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
+    min-height: 38px; padding: 4px 8px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    cursor: pointer; transition: var(--transition);
+    background: #fff;
+  }
+  .multi-select-input:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,110,247,.1); }
+  .multi-select-input .chip {
+    display: inline-flex; align-items: center; gap: 2px;
+    padding: 2px 8px; background: #eef2ff; color: var(--info);
+    border-radius: 12px; font-size: 12px; font-weight: 600;
+  }
+  .multi-select-input .chip .chip-remove {
+    cursor: pointer; font-size: 14px; line-height: 1; margin-left: 2px;
+    color: #6366f1; opacity: 0.6;
+  }
+  .multi-select-input .chip .chip-remove:hover { opacity: 1; }
+  .multi-select-input .placeholder { color: #94a3b8; font-size: 13px; }
+  .multi-select-dropdown {
+    display: none; position: absolute; top: 100%; left: 0; right: 0;
+    background: #fff; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md); z-index: 50; max-height: 180px; overflow-y: auto;
+    margin-top: 2px;
+  }
+  .multi-select-dropdown.show { display: block; }
+  .multi-select-dropdown label {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 12px; cursor: pointer; font-size: 13px;
+    transition: background var(--transition);
+  }
+  .multi-select-dropdown label:hover { background: var(--row-hover); }
+  .multi-select-dropdown input[type="checkbox"] { accent-color: var(--primary); }
+
+  /* Person tags in table */
+  .person-tags { display: flex; flex-wrap: wrap; gap: 2px; }
+  .person-tag {
+    display: inline-block; padding: 1px 7px; background: #eef2ff; color: var(--info);
+    border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap;
+  }
+
+  /* Drag and drop */
+  .drag-handle {
+    cursor: grab;
+    color: #94a3b8;
+    font-size: 14px;
+    user-select: none;
+    padding: 2px 4px;
+    margin-right: 2px;
+    vertical-align: middle;
+    display: inline-block;
+    transition: color var(--transition);
+  }
+  .drag-handle:hover { color: #475569; }
+  .drag-handle:active { cursor: grabbing; }
+  tr.drag-over td { border-top: 2px solid var(--primary); }
+  tr.dragging { opacity: 0.4; }
+
+  /* ========== Sticky Columns (first 4) ========== */
+  .sticky-col-1 { position: sticky; left: 0; z-index: 2; }
+  .sticky-col-2 { position: sticky; left: 56px; z-index: 2; }
+  .sticky-col-3 { position: sticky; left: 176px; z-index: 2; }
+  .sticky-col-4 { position: sticky; left: 316px; z-index: 2; }
+
+  thead th.sticky-col-1,
+  thead th.sticky-col-2,
+  thead th.sticky-col-3,
+  thead th.sticky-col-4 {
+    z-index: 12;
+    background: #f8fafc;
+  }
+
+  tbody td.sticky-col-1,
+  tbody td.sticky-col-2,
+  tbody td.sticky-col-3,
+  tbody td.sticky-col-4 {
+    background: #ffffff;
+  }
+  tbody tr:hover td.sticky-col-1,
+  tbody tr:hover td.sticky-col-2,
+  tbody tr:hover td.sticky-col-3,
+  tbody tr:hover td.sticky-col-4 {
+    background: #f1f5f9;
+    white-space: nowrap;
+  }
+
+  /* Status badges */
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge-default { background: #f1f5f9; color: #64748b; }
+  .badge-pending { background: #fef3c7; color: #92400e; }
+  .badge-progress { background: #dbeafe; color: #1e40af; }
+  .badge-delayed { background: #fee2e2; color: #991b1b; }
+  .badge-done { background: #dcfce7; color: #166534; }
+
+  /* Progress bar in table */
+  .progress-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 100px;
+  }
+  .progress-bar {
+    flex: 1;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+  .progress-fill.done { background: var(--success); }
+  .progress-fill.delayed { background: var(--warning); }
+  .progress-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    min-width: 36px;
+    text-align: right;
+  }
+
+  /* Action buttons in table */
+  .actions { display: flex; gap: 4px; }
+
+  /* ========== Modal ========== */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.4);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.15);
+    width: 90%;
+    max-width: 800px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .modal-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-header h2 { font-size: 18px; font-weight: 700; }
+  .modal-close {
+    width: 32px; height: 32px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 20px;
+    color: var(--text-secondary);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+  }
+  .modal-close:hover { background: var(--row-hover); }
+  .modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .modal-footer {
+    padding: 14px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .form-grid .full-width { grid-column: 1 / -1; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    outline: none;
+    font-family: inherit;
+    transition: var(--transition);
+  }
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79,110,247,.1);
+  }
+  .form-group textarea { resize: vertical; min-height: 72px; }
+  .form-group input[type="number"] { -moz-appearance: textfield; }
+  .form-group input[type="number"]::-webkit-inner-spin-button,
+  .form-group input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .form-group input[type="range"] { padding: 0; border: none; }
+
+  /* ========== Empty State ========== */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+  }
+  .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 15px; margin-bottom: 16px; }
+
+  /* ========== Toast ========== */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #1e293b;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 200;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.success { background: #16a34a; }
+  .toast.error { background: #dc2626; }
+
+  /* ========== Responsive ========== */
+  @media (max-width: 768px) {
+    .container { padding: 12px; }
+    .header { flex-direction: column; align-items: flex-start; }
+    .stats-row { gap: 8px; }
+    .stat-card { padding: 12px 14px; min-width: 130px; }
+    .toolbar { flex-direction: column; align-items: stretch; }
+    .search-box { max-width: 100%; }
+    .form-grid { grid-template-columns: 1fr; }
+    .modal { width: 96%; max-height: 90vh; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <h1>
+      <span class="icon">📋</span> WBS 项目管理
+    </h1>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon total">📝</div>
+      <div>
+        <div class="stat-label">总任务数</div>
+        <div class="stat-value" id="statTotal">0</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon done">✅</div>
+      <div>
+        <div class="stat-label">已完成</div>
+        <div class="stat-value" id="statDone">0</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon progress">📊</div>
+      <div>
+        <div class="stat-label">平均进度</div>
+        <div class="stat-value" id="statAvg">0<span class="stat-unit">%</span></div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon delayed">⚠️</div>
+      <div>
+        <div class="stat-label">延迟任务</div>
+        <div class="stat-value" id="statDelayed">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="toolbar-group">
+      <label>🔍 搜索</label>
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="搜索工作项或工作内容..." oninput="renderTable()">
+      </div>
+    </div>
+
+    <div class="toolbar-group">
+      <label>阶段</label>
+      <select id="filterPhase" onchange="renderTable()">
+        <option value="">全部</option>
+      </select>
+    </div>
+
+    <div class="toolbar-group">
+      <label>状态</label>
+      <select id="filterStatus" onchange="renderTable()">
+        <option value="">全部</option>
+        <option value="/">/</option>
+        <option value="待开始">待开始</option>
+        <option value="进行中">进行中</option>
+        <option value="延迟">延迟</option>
+        <option value="已完成">已完成</option>
+      </select>
+    </div>
+
+    <div class="toolbar-group">
+      <label>负责人</label>
+      <select id="filterPerson" onchange="renderTable()">
+        <option value="">全部</option>
+      </select>
+    </div>
+
+    <button class="btn btn-outline btn-sm" onclick="clearFilters()" title="清除筛选">🔄 清除</button>
+
+    <span class="spacer"></span>
+
+    <button class="btn btn-primary" onclick="openModal()">＋ 新增工作项</button>
+    <button class="btn btn-success btn-sm" onclick="exportCSV()">📥 导出 CSV</button>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrapper">
+    <div class="table-scroll" id="tableContainer">
+      <table>
+        <thead>
+          <tr>
+            <th class="sticky-col-1" style="width:56px">No.</th>
+            <th class="sticky-col-2" style="width:120px">项目阶段</th>
+            <th class="sticky-col-3" style="width:140px">工作目标</th>
+            <th class="sticky-col-4" style="width:140px">工作项</th>
+            <th style="width:200px">工作内容</th>
+            <th style="width:110px">进度</th>
+            <th style="width:90px">状态</th>
+            <th style="width:120px">计划开始</th>
+            <th style="width:120px">计划结束</th>
+            <th style="width:120px">实际开始</th>
+            <th style="width:120px">实际结束</th>
+            <th style="width:100px">负责人</th>
+            <th style="width:160px">备注/说明</th>
+            <th style="width:110px">操作</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+        </tbody>
+      </table>
+      <div class="empty-state" id="emptyState" style="display:none">
+        <div class="empty-icon">📭</div>
+        <p>暂无 WBS 数据</p>
+        <button class="btn btn-primary" onclick="openModal()">＋ 添加第一条工作项</button>
+      </div>
+    </div>
+
+    <div style="padding:10px 16px;font-size:12px;color:var(--text-secondary);border-top:1px solid var(--border);text-align:right">
+      显示 <strong id="filteredCount">0</strong> 条
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">新增工作项</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="wbsForm" onsubmit="saveItem(event)">
+        <input type="hidden" id="itemId">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>项目阶段 *</label>
+            <input type="text" id="phase" placeholder="如：需求分析、开发阶段、测试阶段" required list="phaseList">
+            <datalist id="phaseList"></datalist>
+          </div>
+          <div class="form-group">
+            <label>工作目标</label>
+            <input type="text" id="objective" placeholder="工作目标">
+          </div>
+          <div class="form-group">
+            <label>工作项 *</label>
+            <input type="text" id="workItem" placeholder="工作项名称" required>
+          </div>
+          <div class="form-group">
+            <label>负责人</label>
+            <div class="multi-select" id="personMultiSelect">
+              <div class="multi-select-input" onclick="togglePersonDropdown(event)">
+                <span class="placeholder">选择负责人...</span>
+              </div>
+              <div class="multi-select-dropdown" id="personDropdown"></div>
+              <input type="hidden" id="person" value="">
+            </div>
+          </div>
+          <div class="form-group full-width">
+            <label>工作内容</label>
+            <textarea id="content" placeholder="详细描述工作内容..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>进度 (<span id="progressLabel">0</span>%)</label>
+            <input type="range" id="progress" min="0" max="100" value="0" oninput="document.getElementById('progressLabel').textContent=this.value" style="margin-top:6px">
+          </div>
+          <div class="form-group">
+            <label>状态</label>
+            <select id="status">
+              <option value="/">/</option>
+              <option value="待开始">待开始</option>
+              <option value="进行中">进行中</option>
+              <option value="延迟">延迟</option>
+              <option value="已完成">已完成</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>计划开始时间</label>
+            <input type="date" id="planStart">
+          </div>
+          <div class="form-group">
+            <label>计划结束时间</label>
+            <input type="date" id="planEnd">
+          </div>
+          <div class="form-group">
+            <label>实际开始时间</label>
+            <input type="date" id="actualStart">
+          </div>
+          <div class="form-group">
+            <label>实际结束时间</label>
+            <input type="date" id="actualEnd">
+          </div>
+          <div class="form-group full-width">
+            <label>备注/说明</label>
+            <textarea id="remarks" placeholder="备注信息..." rows="2"></textarea>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" type="submit" form="wbsForm">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== Data Layer ====================
+const STORAGE_KEY = 'wbs_project_data';
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveData(data) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {
+    showToast('保存失败！可能是存储空间不足: ' + e.message + ' ❌', 'error');
+    console.error('WBS saveData error:', e);
+  }
+}
+
+let wbsData = loadData();
+let currentEditId = null;
+
+// ==================== Helpers ====================
+function generateId() {
+  return 'wbs_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr + (dateStr.includes('T') ? '' : 'T00:00:00'));
+  return d.toLocaleDateString('zh-CN', { year:'numeric', month:'2-digit', day:'2-digit' });
+}
+
+function isOverdue(item) {
+  if (item.status === '已完成') return false;
+  if (!item.planEnd) return false;
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const end = new Date(item.planEnd + 'T00:00:00');
+  return end < today;
+}
+
+// ==================== Render ====================
+function getStatusBadgeClass(status) {
+  const map = {
+    '/': 'badge-default',
+    '待开始': 'badge-pending',
+    '进行中': 'badge-progress',
+    '延迟': 'badge-delayed',
+    '已完成': 'badge-done',
+  };
+  return map[status] || 'badge-default';
+}
+
+function renderTable() {
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+  const filterPhase = document.getElementById('filterPhase').value;
+  const filterStatus = document.getElementById('filterStatus').value;
+  const filterPerson = document.getElementById('filterPerson').value;
+
+  // Apply filters
+  let filtered = wbsData.filter(item => {
+    if (filterPhase && item.phase !== filterPhase) return false;
+    if (filterStatus && item.status !== filterStatus) return false;
+    if (filterPerson && !(item.person || '').split(',').map(s => s.trim()).includes(filterPerson)) return false;
+    if (searchTerm) {
+      const wi = (item.workItem || '').toLowerCase();
+      const wc = (item.content || '').toLowerCase();
+      if (!wi.includes(searchTerm) && !wc.includes(searchTerm)) return false;
+    }
+    return true;
+  });
+
+  const tbody = document.getElementById('tableBody');
+  const emptyState = document.getElementById('emptyState');
+  const filteredCount = document.getElementById('filteredCount');
+
+  filteredCount.textContent = filtered.length;
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '';
+    emptyState.style.display = 'block';
+  } else {
+    emptyState.style.display = 'none';
+    tbody.innerHTML = filtered.map((item, idx) => {
+      const progressVal = parseInt(item.progress) || 0;
+      const overdue = isOverdue(item);
+      let fillClass = '';
+      if (item.status === '已完成') fillClass = 'done';
+      else if (item.status === '延迟' || overdue) fillClass = 'delayed';
+
+      return `
+        <tr data-id="${item.id}" class="draggable-row">
+          <td class="sticky-col-1"><span class="drag-handle" draggable="true" title="拖动排序">⋮⋮</span>${idx + 1}</td>
+          <td class="sticky-col-2" title="${escapeHtml(item.phase || '')}">${escapeHtml(item.phase || '-')}</td>
+          <td class="sticky-col-3" title="${escapeHtml(item.objective || '')}">${escapeHtml(item.objective || '-')}</td>
+          <td class="sticky-col-4" title="${escapeHtml(item.workItem || '')}"><strong>${escapeHtml(item.workItem || '-')}</strong></td>
+          <td title="${escapeHtml(item.content || '')}">${escapeHtml(item.content || '-')}</td>
+          <td>
+            <div class="progress-cell">
+              <div class="progress-bar"><div class="progress-fill ${fillClass}" style="width:${progressVal}%"></div></div>
+              <span class="progress-text">${progressVal}%</span>
+            </div>
+          </td>
+          <td><span class="badge ${getStatusBadgeClass(item.status)}">${escapeHtml(item.status || '/')}</span></td>
+          <td>${formatDate(item.planStart)}</td>
+          <td>${formatDate(item.planEnd)}</td>
+          <td>${formatDate(item.actualStart)}</td>
+          <td>${formatDate(item.actualEnd)}</td>
+          <td>${renderPersonTags(item.person)}</td>
+          <td title="${escapeHtml(item.remarks || '')}">${escapeHtml(item.remarks || '-')}</td>
+          <td class="actions">
+            <button class="btn btn-outline btn-xs" onclick="copyItem('${item.id}')" title="复制新增">📋</button>
+            <button class="btn btn-outline btn-xs" onclick="openModal('${item.id}')" title="编辑">✏️</button>
+            <button class="btn btn-danger btn-xs" onclick="deleteItem('${item.id}')" title="删除">🗑️</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  updateStats();
+  updateFilterOptions();
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ==================== Stats ====================
+function updateStats() {
+  const total = wbsData.length;
+  const done = wbsData.filter(i => i.status === '已完成').length;
+  const delayed = wbsData.filter(i => i.status === '延迟' || isOverdue(i)).length;
+  const avg = total > 0
+    ? Math.round(wbsData.reduce((sum, i) => sum + (parseInt(i.progress) || 0), 0) / total)
+    : 0;
+
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statDone').textContent = done;
+  document.getElementById('statAvg').innerHTML = avg + '<span class="stat-unit">%</span>';
+  document.getElementById('statDelayed').textContent = delayed;
+}
+
+// ==================== Filter Options ====================
+function updateFilterOptions() {
+  const phases = [...new Set(wbsData.map(i => i.phase).filter(Boolean))].sort();
+  const persons = [...new Set(wbsData.flatMap(i => (i.person || '').split(',').map(s => s.trim()).filter(Boolean)))].sort();
+
+  const phaseSel = document.getElementById('filterPhase');
+  const currentPhase = phaseSel.value;
+  phaseSel.innerHTML = '<option value="">全部</option>' + phases.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+  phaseSel.value = currentPhase;
+
+  const personSel = document.getElementById('filterPerson');
+  const currentPerson = personSel.value;
+  personSel.innerHTML = '<option value="">全部</option>' + persons.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+  personSel.value = currentPerson;
+
+  // Update datalists
+  document.getElementById('phaseList').innerHTML = phases.map(p => `<option value="${escapeHtml(p)}">`).join('');
+}
+
+function clearFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('filterPhase').value = '';
+  document.getElementById('filterStatus').value = '';
+  document.getElementById('filterPerson').value = '';
+  renderTable();
+}
+
+// ==================== Drag & Drop ====================
+let dragSrcId = null;
+
+function initDragDrop() {
+  const tbody = document.getElementById('tableBody');
+
+  tbody.addEventListener('dragstart', function(e) {
+    const handle = e.target.closest('.drag-handle');
+    if (!handle) { e.preventDefault(); return; }
+
+    const row = handle.closest('tr');
+    if (!row) return;
+
+    dragSrcId = row.dataset.id;
+    row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', dragSrcId);
+  });
+
+  tbody.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+
+    // Remove existing drag-over indicators
+    tbody.querySelectorAll('tr.drag-over').forEach(r => r.classList.remove('drag-over'));
+
+    // Find the row we're hovering over
+    const targetRow = e.target.closest('tr.draggable-row');
+    if (targetRow && targetRow.dataset.id !== dragSrcId) {
+      targetRow.classList.add('drag-over');
+    }
+  });
+
+  tbody.addEventListener('dragleave', function(e) {
+    const targetRow = e.target.closest('tr.draggable-row');
+    if (targetRow) targetRow.classList.remove('drag-over');
+  });
+
+  tbody.addEventListener('drop', function(e) {
+    e.preventDefault();
+    tbody.querySelectorAll('tr.drag-over').forEach(r => r.classList.remove('drag-over'));
+
+    const targetRow = e.target.closest('tr.draggable-row');
+    if (!targetRow || !dragSrcId || targetRow.dataset.id === dragSrcId) return;
+
+    const targetId = targetRow.dataset.id;
+
+    // Reorder in wbsData (use full unfiltered array)
+    const srcIdx = wbsData.findIndex(i => i.id === dragSrcId);
+    const dstIdx = wbsData.findIndex(i => i.id === targetId);
+    if (srcIdx === -1 || dstIdx === -1) return;
+
+    const [moved] = wbsData.splice(srcIdx, 1);
+    wbsData.splice(dstIdx, 0, moved);
+
+    saveData(wbsData);
+    renderTable();
+    showToast('排序已更新 ✅', 'success');
+  });
+
+  tbody.addEventListener('dragend', function(e) {
+    tbody.querySelectorAll('tr.dragging, tr.drag-over').forEach(r => {
+      r.classList.remove('dragging', 'drag-over');
+    });
+    dragSrcId = null;
+  });
+}
+
+// ==================== Person Multi-Select ====================
+const PERSON_OPTIONS = ['张森森', '徐昕', '段威利', '刘洪波', 'Arthur', '李洁军', '贝瑶'];
+
+function renderPersonTags(personStr) {
+  if (!personStr) return '-';
+  const names = personStr.split(',').map(s => s.trim()).filter(Boolean);
+  if (!names.length) return '-';
+  return `<div class="person-tags">${names.map(n => `<span class="person-tag">${escapeHtml(n)}</span>`).join('')}</div>`;
+}
+
+function initPersonDropdown() {
+  const dropdown = document.getElementById('personDropdown');
+  dropdown.innerHTML = PERSON_OPTIONS.map(name => `
+    <label>
+      <input type="checkbox" value="${escapeHtml(name)}" onchange="updatePersonSelection()">
+      ${escapeHtml(name)}
+    </label>
+  `).join('');
+}
+
+function getSelectedPersons() {
+  const checks = document.querySelectorAll('#personDropdown input[type="checkbox"]:checked');
+  return Array.from(checks).map(c => c.value);
+}
+
+function setSelectedPersons(names) {
+  const nameSet = new Set((names || '').split(',').map(s => s.trim()).filter(Boolean));
+  document.querySelectorAll('#personDropdown input[type="checkbox"]').forEach(cb => {
+    cb.checked = nameSet.has(cb.value);
+  });
+  updatePersonDisplay();
+}
+
+function updatePersonSelection() {
+  const selected = getSelectedPersons();
+  document.getElementById('person').value = selected.join(', ');
+  updatePersonDisplay();
+}
+
+function updatePersonDisplay() {
+  const selected = getSelectedPersons();
+  const inputDiv = document.querySelector('#personMultiSelect .multi-select-input');
+  const placeholder = inputDiv.querySelector('.placeholder');
+
+  // Remove existing chips
+  inputDiv.querySelectorAll('.chip').forEach(c => c.remove());
+
+  if (selected.length === 0) {
+    placeholder.style.display = 'inline';
+  } else {
+    placeholder.style.display = 'none';
+    selected.forEach(name => {
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.innerHTML = `${escapeHtml(name)} <span class="chip-remove" data-name="${escapeHtml(name)}">×</span>`;
+      inputDiv.insertBefore(chip, placeholder);
+    });
+  }
+}
+
+function togglePersonDropdown(e) {
+  // Don't toggle when clicking chip remove
+  if (e.target.classList.contains('chip-remove')) {
+    const name = e.target.dataset.name;
+    const cb = document.querySelector(`#personDropdown input[value="${escapeHtml(name)}"]`);
+    if (cb) { cb.checked = false; updatePersonSelection(); }
+    e.stopPropagation();
+    return;
+  }
+  const dropdown = document.getElementById('personDropdown');
+  dropdown.classList.toggle('show');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  const ms = document.getElementById('personMultiSelect');
+  if (ms && !ms.contains(e.target)) {
+    document.getElementById('personDropdown').classList.remove('show');
+  }
+});
+
+// ==================== Modal ====================
+function openModal(id) {
+  currentEditId = id || null;
+  const overlay = document.getElementById('modalOverlay');
+  const title = document.getElementById('modalTitle');
+
+  if (id) {
+    title.textContent = '编辑工作项';
+    const item = wbsData.find(i => i.id === id);
+    if (item) {
+      fillForm(item, item.id);
+    }
+  } else {
+    title.textContent = '新增工作项';
+    document.getElementById('wbsForm').reset();
+    document.getElementById('itemId').value = '';
+    document.getElementById('progress').value = 0;
+    document.getElementById('progressLabel').textContent = '0';
+    document.getElementById('status').value = '/';
+    setSelectedPersons('');
+  }
+
+  overlay.classList.add('active');
+}
+
+// Copy item: open modal pre-filled with existing data, save as new
+function copyItem(id) {
+  const item = wbsData.find(i => i.id === id);
+  if (!item) return;
+
+  currentEditId = null; // No ID -> will create new on save
+  document.getElementById('modalTitle').textContent = '复制新增工作项';
+  fillForm(item, ''); // Fill form but with empty ID
+  document.getElementById('progressLabel').textContent = item.progress || 0;
+
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+// Helper: fill modal form fields from an item object
+function fillForm(item, id) {
+  document.getElementById('itemId').value = id;
+  document.getElementById('phase').value = item.phase || '';
+  document.getElementById('objective').value = item.objective || '';
+  document.getElementById('workItem').value = item.workItem || '';
+  document.getElementById('content').value = item.content || '';
+  document.getElementById('progress').value = item.progress || 0;
+  document.getElementById('progressLabel').textContent = item.progress || 0;
+  document.getElementById('status').value = item.status || '/';
+  document.getElementById('planStart').value = item.planStart || '';
+  document.getElementById('planEnd').value = item.planEnd || '';
+  document.getElementById('actualStart').value = item.actualStart || '';
+  document.getElementById('actualEnd').value = item.actualEnd || '';
+  setSelectedPersons(item.person || '');
+  document.getElementById('remarks').value = item.remarks || '';
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('active');
+  currentEditId = null;
+}
+
+// Close modal on Escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const overlay = document.getElementById('modalOverlay');
+    if (overlay.classList.contains('active')) closeModal();
+  }
+});
+
+// ==================== CRUD ====================
+function saveItem(e) {
+  e.preventDefault();
+
+  const id = document.getElementById('itemId').value;
+  const item = {
+    id: id || generateId(),
+    phase: document.getElementById('phase').value.trim(),
+    objective: document.getElementById('objective').value.trim(),
+    workItem: document.getElementById('workItem').value.trim(),
+    content: document.getElementById('content').value.trim(),
+    progress: parseInt(document.getElementById('progress').value) || 0,
+    status: document.getElementById('status').value,
+    planStart: document.getElementById('planStart').value,
+    planEnd: document.getElementById('planEnd').value,
+    actualStart: document.getElementById('actualStart').value,
+    actualEnd: document.getElementById('actualEnd').value,
+    person: document.getElementById('person').value.trim(),
+    remarks: document.getElementById('remarks').value.trim(),
+  };
+
+  // Auto-set status based on progress
+  if (item.progress === 100 && item.status !== '已完成') {
+    item.status = '已完成';
+  } else if (item.progress > 0 && item.progress < 100 && (item.status === '/' || item.status === '待开始')) {
+    item.status = '进行中';
+  }
+
+  if (id) {
+    // Update
+    const index = wbsData.findIndex(i => i.id === id);
+    if (index !== -1) {
+      wbsData[index] = item;
+      showToast('工作项已更新 ✅', 'success');
+    }
+  } else {
+    // Create
+    wbsData.push(item);
+    showToast('工作项已添加 ✅', 'success');
+  }
+
+  saveData(wbsData);
+  closeModal();
+  renderTable();
+}
+
+function deleteItem(id) {
+  const item = wbsData.find(i => i.id === id);
+  if (!item) return;
+
+  if (confirm(`确定要删除工作项「${item.workItem || '未命名'}」吗？\n此操作不可恢复。`)) {
+    wbsData = wbsData.filter(i => i.id !== id);
+    saveData(wbsData);
+    renderTable();
+    showToast('工作项已删除 🗑️', 'success');
+  }
+}
+
+// ==================== Import / Export ====================
+function exportCSV() {
+  const headers = ['项目阶段','工作目标','工作项','工作内容','进度','状态','计划开始时间','计划结束时间','实际开始时间','实际结束时间','负责人','备注/说明'];
+  const keys = ['phase','objective','workItem','content','progress','status','planStart','planEnd','actualStart','actualEnd','person','remarks'];
+
+  const escapeCSV = (val) => {
+    if (val == null) return '';
+    const s = String(val);
+    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  };
+
+  let csv = '﻿'; // BOM for Excel Chinese support
+  csv += headers.map(escapeCSV).join(',') + '\n';
+  csv += wbsData.map(item => keys.map(k => escapeCSV(item[k] ?? '')).join(',')).join('\n');
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  downloadBlob(blob, `wbs-export-${new Date().toISOString().slice(0,10)}.csv`);
+  showToast('CSV 已导出 ✅', 'success');
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ==================== Toast ====================
+let toastTimer;
+function showToast(msg, type) {
+  const toast = document.getElementById('toast');
+  clearTimeout(toastTimer);
+  toast.textContent = msg;
+  toast.className = 'toast ' + (type || '');
+  // Force reflow
+  toast.offsetHeight;
+  toast.classList.add('show');
+  toastTimer = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 2500);
+}
+
+// ==================== Init ====================
+initPersonDropdown();
+initDragDrop();
+renderTable();
+
+console.log('📋 WBS 项目管理已就绪');
+console.log('  数据条数:', wbsData.length);
+console.log('  存储位置: localStorage ->', STORAGE_KEY);
+</script>
+
+</body>
+</html>
