@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WBS 甘特图</title>
+<style>
+  :root {
+    --bg: #f5f6fa;
+    --card-bg: #ffffff;
+    --primary: #4f6ef7;
+    --primary-dark: #3b5de7;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --text: #1e293b;
+    --text-secondary: #64748b;
+    --border: #e2e8f0;
+    --row-hover: #f8fafc;
+    --today: #ef4444;
+    --radius: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  }
+
+  .container { padding: 20px 24px; }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  h1 {
+    font-size: 24px;
+    line-height: 1.2;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: .18s ease;
+  }
+
+  .btn:hover { border-color: var(--primary); color: var(--primary); }
+  .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .btn-primary:hover { background: var(--primary-dark); color: #fff; }
+
+  .toolbar {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  label {
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  select, input {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    background: #fff;
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  input[type="search"] { min-width: 260px; }
+
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .summary-card {
+    background: #fff;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 14px 16px;
+  }
+
+  .summary-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+
+  .summary-value {
+    font-size: 22px;
+    font-weight: 800;
+  }
+
+  .gantt-shell {
+    background: #fff;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .gantt-scroll {
+    overflow: auto;
+    max-height: calc(100vh - 245px);
+  }
+
+  .gantt-grid {
+    display: grid;
+    grid-template-columns: 620px max-content;
+    min-width: 100%;
+  }
+
+  .left-head,
+  .timeline-head {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #f8fafc;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .left-head {
+    left: 0;
+    z-index: 7;
+    display: grid;
+    grid-template-columns: 110px 120px 170px 80px 80px 80px;
+    border-right: 1px solid var(--border);
+  }
+
+  .head-cell,
+  .left-cell {
+    min-height: 42px;
+    padding: 10px 10px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+  }
+
+  .head-cell {
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+
+  .timeline-head {
+    display: grid;
+    grid-template-rows: 24px 26px;
+  }
+
+  .month-row,
+  .day-row {
+    display: grid;
+  }
+
+  .month-cell,
+  .day-cell {
+    border-right: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .month-cell {
+    border-bottom: 1px solid var(--border);
+    font-weight: 700;
+  }
+
+  .row-left {
+    position: sticky;
+    left: 0;
+    z-index: 4;
+    display: grid;
+    grid-template-columns: 110px 120px 170px 80px 80px 80px;
+    background: #fff;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .row-left:hover,
+  .row-left:hover + .timeline-row {
+    background: var(--row-hover);
+  }
+
+  .left-cell {
+    min-height: 44px;
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  .left-cell .clip {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .phase-cell {
+    font-weight: 700;
+    color: var(--primary);
+  }
+
+  .timeline-row {
+    position: relative;
+    min-height: 44px;
+    border-bottom: 1px solid var(--border);
+    background-image: linear-gradient(to right, rgba(226,232,240,.85) 1px, transparent 1px);
+  }
+
+  .bar {
+    position: absolute;
+    top: 10px;
+    height: 22px;
+    border-radius: 5px;
+    background: #dbe4ff;
+    border: 1px solid rgba(79,110,247,.25);
+    overflow: hidden;
+    min-width: 4px;
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), #7c8cff);
+  }
+
+  .bar.done .bar-fill { background: linear-gradient(90deg, var(--success), #86efac); }
+  .bar.delayed .bar-fill { background: linear-gradient(90deg, var(--danger), #fca5a5); }
+
+  .bar-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 7px;
+    color: #172554;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .today-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--today);
+    z-index: 3;
+  }
+
+  .progress-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 46px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .empty {
+    padding: 54px 20px;
+    text-align: center;
+    color: var(--text-secondary);
+    display: none;
+  }
+
+  .note {
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin-top: 8px;
+  }
+
+  @media (max-width: 900px) {
+    .summary { grid-template-columns: repeat(2, 1fr); }
+    .gantt-grid { grid-template-columns: 560px max-content; }
+    .left-head,
+    .row-left {
+      grid-template-columns: 96px 108px 150px 68px 68px 68px;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div>
+      <h1>WBS 甘特图</h1>
+      <div class="note">基于项目阶段、工作目标、工作项、进度、计划开始时间和计划结束时间生成</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn" onclick="location.href='wbs-manager.html'">返回 WBS 列表</button>
+      <button class="btn btn-primary" onclick="reloadData()">刷新数据</button>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-card">
+      <div class="summary-label">任务数</div>
+      <div class="summary-value" id="statTasks">0</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">平均进度</div>
+      <div class="summary-value" id="statProgress">0%</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">计划起止</div>
+      <div class="summary-value" id="statRange" style="font-size:16px">-</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">延迟任务</div>
+      <div class="summary-value" id="statDelayed">0</div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="toolbar-group">
+      <label>搜索</label>
+      <input type="search" id="searchInput" placeholder="搜索项目阶段、工作目标或工作项" oninput="renderGantt()">
+    </div>
+    <div class="toolbar-group">
+      <label>项目阶段</label>
+      <select id="phaseFilter" onchange="renderGantt()">
+        <option value="">全部</option>
+      </select>
+    </div>
+    <div class="toolbar-group">
+      <label>工作目标</label>
+      <select id="objectiveFilter" onchange="renderGantt()">
+        <option value="">全部</option>
+      </select>
+    </div>
+    <div class="toolbar-group">
+      <label>时间粒度</label>
+      <select id="scaleSelect" onchange="renderGantt()">
+        <option value="day">按天</option>
+        <option value="week">按周</option>
+      </select>
+    </div>
+    <button class="btn" onclick="clearFilters()">清除筛选</button>
+  </div>
+
+  <div class="gantt-shell">
+    <div class="gantt-scroll">
+      <div class="gantt-grid" id="ganttGrid">
+        <div class="left-head">
+          <div class="head-cell">项目阶段</div>
+          <div class="head-cell">工作目标</div>
+          <div class="head-cell">工作项</div>
+          <div class="head-cell">进度</div>
+          <div class="head-cell">计划开始</div>
+          <div class="head-cell">计划结束</div>
+        </div>
+        <div class="timeline-head" id="timelineHead"></div>
+      </div>
+      <div class="empty" id="emptyState">暂无可展示的甘特图数据，请先在 WBS 列表中填写计划开始和计划结束时间。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'wbs_project_data';
+const PUBLISHED_DATA_URL = './wbs-data.json';
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+let wbsData = [];
+
+function generateId() {
+  return 'wbs_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+function normalizeWbsPayload(payload) {
+  const items = Array.isArray(payload) ? payload : payload?.items;
+  if (!Array.isArray(items)) return [];
+  return items.map(item => ({
+    id: item.id || generateId(),
+    phase: item.phase || '',
+    objective: item.objective || '',
+    workItem: item.workItem || '',
+    progress: Number(item.progress ?? 0),
+    status: item.status || '/',
+    planStart: item.planStart || '',
+    planEnd: item.planEnd || '',
+  }));
+}
+
+function readLocalData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? normalizeWbsPayload(JSON.parse(raw)) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+async function readPublishedData() {
+  try {
+    const response = await fetch(PUBLISHED_DATA_URL, { cache: 'no-store' });
+    if (!response.ok) return [];
+    return normalizeWbsPayload(await response.json());
+  } catch (e) {
+    return [];
+  }
+}
+
+async function reloadData() {
+  const localData = readLocalData();
+  wbsData = localData.length ? localData : await readPublishedData();
+  updateFilters();
+  renderGantt();
+}
+
+function parseDate(value) {
+  if (!value) return null;
+  const date = new Date(value + 'T00:00:00');
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatDate(date) {
+  if (!date) return '-';
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function formatMonth(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function addDays(date, days) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function startOfWeek(date) {
+  const d = new Date(date);
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() - day + 1);
+  return d;
+}
+
+function daysBetween(start, end) {
+  return Math.round((end - start) / DAY_MS);
+}
+
+function isOverdue(item) {
+  if (item.status === '已完成') return false;
+  const end = parseDate(item.planEnd);
+  if (!end) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return end < today;
+}
+
+function escapeHtml(value) {
+  const div = document.createElement('div');
+  div.textContent = value == null ? '' : String(value);
+  return div.innerHTML;
+}
+
+function getPlannableItems() {
+  return wbsData
+    .map(item => ({ ...item, start: parseDate(item.planStart), end: parseDate(item.planEnd) }))
+    .filter(item => item.start && item.end)
+    .map(item => item.end < item.start ? { ...item, end: item.start } : item);
+}
+
+function getFilteredItems() {
+  const search = document.getElementById('searchInput').value.trim().toLowerCase();
+  const phase = document.getElementById('phaseFilter').value;
+  const objective = document.getElementById('objectiveFilter').value;
+
+  return getPlannableItems().filter(item => {
+    if (phase && item.phase !== phase) return false;
+    if (objective && item.objective !== objective) return false;
+    if (search) {
+      const haystack = `${item.phase} ${item.objective} ${item.workItem}`.toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
+    return true;
+  });
+}
+
+function updateFilters() {
+  const phaseSelect = document.getElementById('phaseFilter');
+  const objectiveSelect = document.getElementById('objectiveFilter');
+  const phases = [...new Set(wbsData.map(i => i.phase).filter(Boolean))].sort();
+  const objectives = [...new Set(wbsData.map(i => i.objective).filter(Boolean))].sort();
+
+  phaseSelect.innerHTML = '<option value="">全部</option>' + phases.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+  objectiveSelect.innerHTML = '<option value="">全部</option>' + objectives.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+}
+
+function updateStats(items) {
+  const total = items.length;
+  const avg = total ? Math.round(items.reduce((sum, item) => sum + (item.progress || 0), 0) / total) : 0;
+  const delayed = items.filter(isOverdue).length;
+
+  document.getElementById('statTasks').textContent = total;
+  document.getElementById('statProgress').textContent = `${avg}%`;
+  document.getElementById('statDelayed').textContent = delayed;
+
+  if (!total) {
+    document.getElementById('statRange').textContent = '-';
+    return;
+  }
+
+  const min = new Date(Math.min(...items.map(i => i.start.getTime())));
+  const max = new Date(Math.max(...items.map(i => i.end.getTime())));
+  document.getElementById('statRange').textContent = `${formatDate(min)} 至 ${formatDate(max)}`;
+}
+
+function buildTimeline(items) {
+  const scale = document.getElementById('scaleSelect').value;
+  const unitDays = scale === 'week' ? 7 : 1;
+  const unitWidth = scale === 'week' ? 56 : 34;
+
+  let minDate = new Date(Math.min(...items.map(i => i.start.getTime())));
+  let maxDate = new Date(Math.max(...items.map(i => i.end.getTime())));
+
+  minDate = scale === 'week' ? startOfWeek(minDate) : addDays(minDate, -2);
+  maxDate = scale === 'week' ? addDays(startOfWeek(maxDate), 6) : addDays(maxDate, 2);
+
+  const unitCount = Math.floor(daysBetween(minDate, maxDate) / unitDays) + 1;
+  const totalWidth = unitCount * unitWidth;
+  const units = Array.from({ length: unitCount }, (_, i) => addDays(minDate, i * unitDays));
+
+  const monthBlocks = [];
+  let currentMonth = '';
+  let count = 0;
+  units.forEach(unit => {
+    const label = formatMonth(unit);
+    if (!currentMonth) currentMonth = label;
+    if (label === currentMonth) {
+      count += 1;
+    } else {
+      monthBlocks.push({ label: currentMonth, count });
+      currentMonth = label;
+      count = 1;
+    }
+  });
+  if (currentMonth) monthBlocks.push({ label: currentMonth, count });
+
+  return { scale, unitDays, unitWidth, unitCount, totalWidth, minDate, maxDate, units, monthBlocks };
+}
+
+function renderTimelineHead(timeline) {
+  const head = document.getElementById('timelineHead');
+  head.style.width = `${timeline.totalWidth}px`;
+  head.innerHTML = `
+    <div class="month-row" style="grid-template-columns:${timeline.monthBlocks.map(b => `${b.count * timeline.unitWidth}px`).join(' ')}">
+      ${timeline.monthBlocks.map(b => `<div class="month-cell">${b.label}</div>`).join('')}
+    </div>
+    <div class="day-row" style="grid-template-columns:repeat(${timeline.unitCount}, ${timeline.unitWidth}px)">
+      ${timeline.units.map(unit => {
+        const label = timeline.scale === 'week'
+          ? `${String(unit.getMonth() + 1).padStart(2, '0')}/${String(unit.getDate()).padStart(2, '0')}`
+          : String(unit.getDate()).padStart(2, '0');
+        return `<div class="day-cell">${label}</div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderGantt() {
+  const grid = document.getElementById('ganttGrid');
+  const empty = document.getElementById('emptyState');
+  grid.querySelectorAll('.row-left, .timeline-row').forEach(node => node.remove());
+
+  const items = getFilteredItems();
+  updateStats(items);
+
+  if (!items.length) {
+    empty.style.display = 'block';
+    document.getElementById('timelineHead').innerHTML = '';
+    return;
+  }
+
+  empty.style.display = 'none';
+  const timeline = buildTimeline(items);
+  renderTimelineHead(timeline);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayOffset = daysBetween(timeline.minDate, today) / timeline.unitDays * timeline.unitWidth;
+  const showToday = today >= timeline.minDate && today <= timeline.maxDate;
+
+  items.forEach(item => {
+    const progress = Math.max(0, Math.min(100, Number(item.progress) || 0));
+    const rowLeft = document.createElement('div');
+    rowLeft.className = 'row-left';
+    rowLeft.innerHTML = `
+      <div class="left-cell phase-cell"><span class="clip" title="${escapeHtml(item.phase)}">${escapeHtml(item.phase || '-')}</span></div>
+      <div class="left-cell"><span class="clip" title="${escapeHtml(item.objective)}">${escapeHtml(item.objective || '-')}</span></div>
+      <div class="left-cell"><span class="clip" title="${escapeHtml(item.workItem)}">${escapeHtml(item.workItem || '-')}</span></div>
+      <div class="left-cell"><span class="progress-pill">${progress}%</span></div>
+      <div class="left-cell">${formatDate(item.start)}</div>
+      <div class="left-cell">${formatDate(item.end)}</div>
+    `;
+
+    const timelineRow = document.createElement('div');
+    timelineRow.className = 'timeline-row';
+    timelineRow.style.width = `${timeline.totalWidth}px`;
+    timelineRow.style.backgroundSize = `${timeline.unitWidth}px 100%`;
+
+    const left = daysBetween(timeline.minDate, item.start) / timeline.unitDays * timeline.unitWidth;
+    const durationDays = Math.max(1, daysBetween(item.start, item.end) + 1);
+    const width = Math.max(8, durationDays / timeline.unitDays * timeline.unitWidth);
+    const statusClass = item.status === '已完成' ? 'done' : (isOverdue(item) ? 'delayed' : '');
+
+    timelineRow.innerHTML = `
+      ${showToday ? `<div class="today-line" style="left:${todayOffset}px" title="今天"></div>` : ''}
+      <div class="bar ${statusClass}" style="left:${left}px;width:${width}px" title="${escapeHtml(item.workItem || '')}｜${progress}%｜${formatDate(item.start)} 至 ${formatDate(item.end)}">
+        <div class="bar-fill" style="width:${progress}%"></div>
+        <div class="bar-label">${escapeHtml(item.workItem || '-')} ${progress}%</div>
+      </div>
+    `;
+
+    grid.appendChild(rowLeft);
+    grid.appendChild(timelineRow);
+  });
+}
+
+function clearFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('phaseFilter').value = '';
+  document.getElementById('objectiveFilter').value = '';
+  renderGantt();
+}
+
+reloadData();
+</script>
+</body>
+</html>

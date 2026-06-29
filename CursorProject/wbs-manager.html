@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WBS 项目管理</title>
+<title>NemoClaw 项目管理</title>
 <style>
   :root {
     --bg: #f5f6fa;
@@ -512,7 +512,7 @@
   <!-- Header -->
   <div class="header">
     <h1>
-      <span class="icon">📋</span> WBS 项目管理
+      <span class="icon">📋</span> NemoClaw 项目管理
     </h1>
   </div>
 
@@ -588,6 +588,7 @@
 
     <span class="spacer"></span>
 
+    <button class="btn btn-outline btn-sm" onclick="location.href='gantt.html'">📈 甘特图</button>
     <button class="btn btn-primary" onclick="openModal()">＋ 新增工作项</button>
     <button class="btn btn-success btn-sm" onclick="exportJSON()">📦 导出 JSON</button>
     <button class="btn btn-outline btn-sm" onclick="document.getElementById('jsonImportInput').click()">📤 导入 JSON</button>
@@ -912,7 +913,7 @@ function updateStats() {
 // ==================== Filter Options ====================
 function updateFilterOptions() {
   const phases = [...new Set(wbsData.map(i => i.phase).filter(Boolean))].sort();
-  const persons = [...new Set(wbsData.flatMap(i => (i.person || '').split(',').map(s => s.trim()).filter(Boolean)))].sort();
+  const persons = PERSON_OPTIONS;
 
   const phaseSel = document.getElementById('filterPhase');
   const currentPhase = phaseSel.value;
@@ -1005,7 +1006,7 @@ function initDragDrop() {
 }
 
 // ==================== Person Multi-Select ====================
-const PERSON_OPTIONS = ['张森森', '徐昕', '段威利', '刘洪波', 'Arthur', '李洁军', '贝瑶'];
+const PERSON_OPTIONS = ['张森森', '徐昕', '段威利', '刘洪波', 'Arthur', '单长海', '李洁军', '贝瑶', '周红阳', '罗建伟'];
 
 function renderPersonTags(personStr) {
   if (!personStr) return '-';
@@ -1304,7 +1305,7 @@ initDragDrop();
 renderTable();
 loadPublishedDataIfNeeded();
 
-console.log('📋 WBS 项目管理已就绪');
+console.log('📋 NemoClaw 项目管理已就绪');
 console.log('  数据条数:', wbsData.length);
 console.log('  存储位置: localStorage ->', STORAGE_KEY);
 </script>
